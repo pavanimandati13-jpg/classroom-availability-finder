@@ -1,52 +1,177 @@
-# Classroom Availability Finder (Cloud Computing Project)
+# 🏫 Classroom Availability Finder
 
-A Flask web service that tells students and staff which classrooms, labs and halls are free
-for a chosen date and time. It checks the weekly timetable plus one-off bookings, and lets
-users book a free room. Packaged with Docker so it can run on any cloud.
+A web-based Cloud Computing project that helps users find available classrooms based on the day, time, seating capacity, and required facilities.
 
-## Features
-- Search free rooms by date, time range, building, room type and minimum capacity
-- "Free right now" one-click search (server timezone defaults to Asia/Kolkata, change with `APP_TZ`)
-- Book / cancel rooms with conflict detection (HTTP 409 on clashes)
-- REST API + single-page responsive UI (light/dark)
-- `/health` endpoint for load balancer health checks
-- Seeded sample data: 12 rooms across Blocks A, B, C with a Mon-Sat timetable
+## 🌐 Live Demo
 
-## Architecture
-Browser -> Load balancer / reverse proxy -> Gunicorn + Flask (container) -> SQLite (file on a volume).
-For multi-instance production, swap SQLite for a managed database (e.g. Amazon RDS / Cloud SQL).
+**Live Website:** https://classroom-availability-finder.onrender.com
 
-## Run locally
+**GitHub Repository:** https://github.com/pavanimandati13-jpg/classroom-availability-finder
+
+## 📌 Project Overview
+
+The Classroom Availability Finder is designed to simplify classroom selection by allowing users to search for suitable classrooms using specific requirements. Instead of manually checking classroom schedules, users can enter their preferences and view matching availability information.
+
+The application is built using Python and Flask, with an HTML-based user interface. It is deployed on Render to make the application accessible through a public web link.
+
+## 🎯 Objectives
+
+- Find classrooms based on the selected day and time.
+- Filter classrooms according to seating capacity.
+- Search for classrooms with required facilities.
+- Provide a simple and user-friendly interface.
+- Demonstrate the deployment of a Python web application using cloud hosting.
+
+## ✨ Features
+
+- **Classroom Search:** Search for classrooms using scheduling requirements.
+- **Day and Time Filtering:** Find classrooms for a selected schedule.
+- **Capacity Filtering:** Identify classrooms that meet seating requirements.
+- **Facility Filtering:** Search based on available classroom facilities.
+- **Web-Based Interface:** Access the application through a browser.
+- **Cloud Deployment:** Access the deployed application using a public URL.
+
+## 🛠️ Technologies Used
+
+| Technology | Purpose |
+|---|---|
+| Python | Application logic |
+| Flask | Web application framework |
+| HTML | Web page structure |
+| CSS | User interface styling |
+| Gunicorn | Production application server |
+| Render | Cloud hosting and deployment |
+| Git and GitHub | Version control and source code hosting |
+
+## ⚙️ System Requirements
+
+- Python 3.10 or a compatible version
+- pip package manager
+- Git
+- A web browser
+- Internet connection for cloud deployment
+
+## 📂 Project Structure
+
+```text
+classroom-availability-finder/
+├── app.py
+├── requirements.txt
+├── README.md
+├── Dockerfile
+├── Procfile
+├── .gitignore
+├── templates/
+│   └── index.html
+└── tests/
+    └── test_app.py
 ```
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-python app.py            # http://localhost:5000
-python -m unittest discover tests
+
+## 🚀 Run the Project Locally
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/pavanimandati13-jpg/classroom-availability-finder.git
 ```
 
-## API
-| Method | Endpoint | Purpose |
-|---|---|---|
-| GET | `/api/availability?date=YYYY-MM-DD&start=HH:MM&end=HH:MM&building=&type=&min_capacity=` | Free and occupied rooms |
-| GET | `/api/rooms` | List all rooms |
-| GET/POST | `/api/bookings` | List (`?date=`) / create booking |
-| DELETE | `/api/bookings/<id>` | Cancel booking |
-| GET | `/health` | Health check |
+### 2. Navigate to the project folder
 
-POST body: `{"room_id":1,"date":"2026-10-26","start":"14:00","end":"15:00","booked_by":"Name","purpose":"Study group"}`
-
-## Deploy to the cloud
-**Docker (any VM, e.g. AWS EC2):**
+```bash
+cd classroom-availability-finder
 ```
-docker build -t classroom-finder .
-docker run -d -p 80:8080 -v classroom-data:/data classroom-finder
-```
-**AWS EC2:** launch an Ubuntu t2.micro, open port 80 in the security group, install Docker, run the commands above.
-**AWS Elastic Beanstalk:** `eb init -p python-3.12 classroom-finder && eb create classroom-env` (uses `Procfile`).
-**Google Cloud Run:** `gcloud run deploy classroom-finder --source . --allow-unauthenticated --region asia-south1`
-(Cloud Run storage is ephemeral, so use Cloud SQL for persistent data.)
-**Render / Railway:** connect the Git repo; build command `pip install -r requirements.txt`, start command from `Procfile`.
 
-## Cloud concepts demonstrated
-IaaS/PaaS deployment, containerization, stateless web tier, health checks, environment-based configuration,
-horizontal scaling (with a managed DB), REST over HTTP.
+### 3. Create a virtual environment
+
+```bash
+python -m venv venv
+```
+
+### 4. Activate the virtual environment
+
+**Windows PowerShell:**
+
+```powershell
+.\venv\Scripts\Activate.ps1
+```
+
+### 5. Install dependencies
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+### 6. Start the application
+
+```bash
+python app.py
+```
+
+### 7. Open the application
+
+Visit:
+
+http://127.0.0.1:5000
+
+## ☁️ Cloud Deployment
+
+The application is deployed using Render.
+
+**Deployment configuration:**
+
+- **Service Type:** Web Service
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `gunicorn app:app`
+
+**Live URL:** https://classroom-availability-finder.onrender.com
+
+## 🔍 How to Use
+
+1. Open the live website or run the application locally.
+2. Enter the required day and time.
+3. Specify the required seating capacity.
+4. Select any required classroom facilities.
+5. Submit the search.
+6. Review the matching classroom results.
+
+The results depend on the schedule data configured in the application.
+
+## 🧪 Testing
+
+The project includes a test file at `tests/test_app.py`.
+
+Run the tests using:
+
+```bash
+python -m pip install pytest
+python -m pytest
+```
+
+## ⚠️ Current Limitations
+
+- The application uses sample classroom schedule data.
+- Availability results may not represent the actual timetable of a college.
+- Live integration with college timetable systems is not currently included.
+
+## 🔮 Future Enhancements
+
+- Integrate a real-time college timetable database.
+- Add administrator login and classroom schedule management.
+- Allow authorized users to update classroom availability.
+- Add booking requests and notifications.
+- Integrate college authentication and access control.
+
+## 🎓 Academic Project
+
+**Project Title:** Classroom Availability Finder  
+**Domain:** Cloud Computing  
+**Backend:** Python and Flask  
+**Deployment Platform:** Render
+
+## 👩‍💻 Author
+
+Developed as an academic Cloud Computing project.
+
+---
+
+*This project demonstrates web application development, classroom search functionality, version control, and cloud deployment.*
