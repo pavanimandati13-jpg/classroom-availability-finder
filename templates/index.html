@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Classroom Availability Finder</title>
+<style>
+  :root { --bg:#f5f7fb; --card:#fff; --text:#1f2937; --muted:#6b7280; --accent:#2563eb; --ok:#16a34a; --bad:#dc2626; --line:#e5e7eb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#111827; --card:#1f2937; --text:#f3f4f6; --muted:#9ca3af; --accent:#60a5fa; --line:#374151; } }
+  * { box-sizing:border-box; } body { margin:0; font-family:system-ui,Segoe UI,Arial,sans-serif; background:var(--bg); color:var(--text); }
+  header { background:var(--accent); color:#fff; padding:18px 24px; } header h1 { margin:0; font-size:1.4rem; } header p { margin:4px 0 0; opacity:.9; font-size:.9rem; }
+  main { max-width:1000px; margin:0 auto; padding:20px; }
+  .panel { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:18px; }
+  .filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; }
+  label { font-size:.8rem; color:var(--muted); display:block; margin-bottom:4px; }
+  input, select, button { width:100%; padding:9px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--text); font-size:.95rem; }
+  button { background:var(--accent); color:#fff; border:none; cursor:pointer; font-weight:600; } button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .summary { margin:0 0 12px; font-weight:600; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:12px; }
+  .room { border:1px solid var(--line); border-left:5px solid var(--ok); border-radius:8px; padding:12px; background:var(--card); }
+  .room.busy { border-left-color:var(--bad); opacity:.75; }
+  .room h3 { margin:0 0 4px; } .meta { color:var(--muted); font-size:.85rem; margin-bottom:8px; }
+  .tag { display:inline-block; padding:2px 8px; border-radius:99px; font-size:.75rem; font-weight:600; color:#fff; background:var(--ok); } .tag.busy { background:var(--bad); }
+  .book { display:flex; gap:6px; margin-top:8px; } .book input { flex:1; padding:6px; } .book button { width:auto; padding:6px 12px; }
+  #msg { padding:10px; border-radius:6px; margin-bottom:12px; display:none; } #msg.ok { background:#dcfce7; color:#166534; display:block; } #msg.err { background:#fee2e2; color:#991b1b; display:block; }
+  h2 { font-size:1.05rem; margin:0 0 10px; }
+</style>
+</head>
+<body>
+<header><h1>Classroom Availability Finder</h1><p>Find free classrooms, labs and halls by date and time, and book them instantly.</p></header>
+<main>
+  <div class="panel">
+    <div class="filters">
+      <div><label>Date</label><input type="date" id="date"></div>
+      <div><label>From</label><input type="time" id="start"></div>
+      <div><label>To</label><input type="time" id="end"></div>
+      <div><label>Building</label><select id="building"><option value="">Any</option><option>Block A</option><option>Block B</option><option>Block C</option></select></div>
+      <div><label>Room type</label><select id="type"><option value="">Any</option><option>Classroom</option><option>Computer Lab</option><option>Seminar Hall</option><option>Auditorium</option></select></div>
+      <div><label>Min. capacity</label><input type="number" id="cap" min="0" value="0"></div>
+      <div><button onclick="search()">Search</button></div>
+      <div><button class="secondary" onclick="freeNow()">Free right now</button></div>
+    </div>
+  </div>
+  <div id="msg"></div>
+  <div class="panel"><p class="summary" id="summary">Choose a time and press Search.</p>
+    <h2>Available</h2><div class="grid" id="free"></div>
+    <h2 style="margin-top:18px">Occupied</h2><div class="grid" id="busy"></div></div>
+  <div class="panel"><h2>Bookings on selected date</h2><div id="bookings"></div></div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+function show(text, ok) { const m = $('msg'); m.textContent = text; m.className = ok ? 'ok' : 'err'; setTimeout(() => m.className = '', 4000); }
+function esc(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+async function freeNow() {
+  const n = await (await fetch('/api/now')).json();
+  $('date').value = n.date; $('start').value = n.time;
+  const [h, m] = n.time.split(':').map(Number);
+  $('end').value = String(Math.min(h + 1, 23)).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+  search();
+}
+async function search() {
+  const p = new URLSearchParams({ date: $('date').value, start: $('start').value, end: $('end').value,
+    building: $('building').value, type: $('type').value, min_capacity: $('cap').value || 0 });
+  const r = await fetch('/api/availability?' + p); const d = await r.json();
+  if (!r.ok) return show(d.error, false);
+  $('summary').textContent = `${d.free_count} room(s) free on ${d.day}, ${d.date} from ${d.start} to ${d.end}`;
+  $('free').innerHTML = d.free.map(x => `<div class="room"><h3>${esc(x.name)}</h3>
+    <div class="meta">${esc(x.building)} · Floor ${x.floor} · ${esc(x.type)} · ${x.capacity} seats</div>
+    <span class="tag">Available</span>
+    <div class="book"><input id="who${x.id}" placeholder="Your name"><button onclick="book(${x.id})">Book</button></div></div>`).join('') || '<p class="meta">No rooms free for this slot.</p>';
+  $('busy').innerHTML = d.busy.map(x => `<div class="room busy"><h3>${esc(x.name)}</h3>
+    <div class="meta">${esc(x.building)} · ${esc(x.type)} · ${x.capacity} seats</div>
+    <span class="tag busy">Occupied</span><div class="meta" style="margin-top:6px">${esc(x.reason)}</div></div>`).join('');
+  loadBookings();
+}
+async function book(id) {
+  const who = $('who' + id).value.trim(); if (!who) return show('Enter your name to book.', false);
+  const r = await fetch('/api/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ room_id: id, date: $('date').value, start: $('start').value, end: $('end').value, booked_by: who }) });
+  const d = await r.json(); show(d.error || d.message, r.ok); if (r.ok) search();
+}
+async function cancelBooking(id) { await fetch('/api/bookings/' + id, { method: 'DELETE' }); search(); }
+async function loadBookings() {
+  const d = await (await fetch('/api/bookings?date=' + $('date').value)).json();
+  $('bookings').innerHTML = d.map(b => `<div class="meta">${esc(b.room)} · ${b.start}-${b.end} · ${esc(b.booked_by)}
+    <a href="#" onclick="cancelBooking(${b.id});return false">cancel</a></div>`).join('') || '<p class="meta">No bookings.</p>';
+}
+freeNow();
+</script>
+</body>
+</html>
